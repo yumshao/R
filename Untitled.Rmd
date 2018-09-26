@@ -1,0 +1,167 @@
+---
+title: "Question2"
+author: "Yuming Shao"
+date: "2018/2/15"
+output: pdf_document
+---
+
+Question 2.
+
+a.
+Generate X and Y for case1.
+```{r, include=FALSE}
+sigma= matrix(1,50,50)
+for (i in 1:50){
+  for (j in 1:50){
+    sigma[i,j]=2*0.5^abs(i-j)
+    }
+}
+#case 1
+library("MASS")
+x1<-mvrnorm(n=2^16, rep(0,50), sigma)
+beta<-c(rep(1,10),rep(0.11,30),rep(1,10))
+y1<-x1%*%beta+rnorm(n=2^16,mean=0,sd=9)
+```
+
+Generate X and Y for case2.
+```{r}
+sigma= matrix(1,50,50)
+for (i in 1:50){
+  for (j in 1:50){
+    sigma[i,j]=2*0.5^abs(i-j)
+    }
+}
+#case 2
+library("mvtnorm")
+library(R.matlab)
+x2<-rmvt(n=2^16,sigma,df=1 ,delta=rep(0,50))
+beta<-c(rep(1,10),rep(0.11,30),rep(1,10))
+y2<-x2%*%beta+rnorm(n=2^16,mean=0,sd=9)
+```
+
+Caculate $MSE_{\beta}$,$Bias_{\beta}$,$Variance_{\beta}$ for case1:
+```{r}
+zz <- cbind(x1, y1)
+zz<-data.frame(zz)
+
+N <- nrow(x1)
+C <- 1000 
+S <- 1000
+sumb2 <- rep(0,50)
+for (i in 1:C){   # a loop over the number of subsamples
+  set.seed(3*i)   # a different seed for each subsample  
+  subsample <- zz[sample(1:N, size=S, replace=TRUE), ]
+  mod2 <- lm(X51~X1:X50,data=subsample)
+  #sum b2 for all subsamples:
+  sumb2 <- sumb2 + coef(mod2)[[2]]
+}
+betahat<-sumb2/C
+#MSE
+mean((betahat-beta)^2)
+
+#Bias
+sum(betahat-beta)
+
+#Variance
+var(betahat)
+```
+
+
+Caculate $MSE_{\beta}$,$Bias_{\beta}$,$Variance_{\beta}$ for case2:
+```{r}
+#Case 2
+zz2 <- cbind(x2, y2)
+zz2<-data.frame(zz2)
+
+N <- nrow(x2)
+C <- 1000 
+S <- 1000
+sumb2 <- rep(0,50)
+for (i in 1:C){   # a loop over the number of subsamples
+  set.seed(3*i)   # a different seed for each subsample  
+  subsample <- zz2[sample(1:N, size=S, replace=TRUE), ]
+  mod2 <- lm(X51~X1:X50,data=subsample)
+  #sum b2 for all subsamples:
+  sumb2 <- sumb2 + coef(mod2)[[2]]
+}
+betahat<-sumb2/C
+
+#MSE
+mean((betahat-beta)^2)
+
+#Bias
+sum(betahat-beta)
+
+#Variance
+var(betahat)
+```
+
+b.
+In this question, I have to do the randomized Hadamard transform on the full data. Due to the capacity of the computer, I use the algorithm in question c.
+Thus, I do the transformation in matlab.
+
+Caculate $MSE_{\beta}$,$Bias_{\beta}$,$Variance_{\beta}$ for case1:
+```{r}
+#(b)
+#Case 1.
+hx1<-read.table("/Users/shaoyuming/x1.dat", header=F, sep = ",")
+hy1<-read.table("/Users/shaoyuming/y1.dat", header=F, sep = ",") 
+
+hzz <- cbind(hx1, hy1)
+hzz<-data.frame(hzz)
+
+N <- nrow(hx1)
+C <- 1000 
+S <- 1000
+sumb2 <- rep(0,50)
+for (i in 1:C){   # a loop over the number of subsamples
+  set.seed(3*i)   # a different seed for each subsample  
+  subsample <- hzz[sample(1:N, size=S, replace=TRUE), ]
+  mod2 <- lm(V1.1~V1:V50,data=subsample)
+  #sum b2 for all subsamples:
+  sumb2 <- sumb2 + coef(mod2)[[2]]
+}
+hbetahat<-sumb2/C
+
+#MSE
+mean((hbetahat-beta)^2)
+
+#Bias
+sum(hbetahat-beta)
+
+#Variance
+var(hbetahat)
+```
+
+Caculate $MSE_{\beta}$,$Bias_{\beta}$,$Variance_{\beta}$ for case2:
+```{r}
+hx2<-read.table("/Users/shaoyuming/x2.dat", header=F, sep = ",")
+hy2<-read.table("/Users/shaoyuming/y2.dat", header=F, sep = ",") 
+
+hzz2 <- cbind(hx2, hy2)
+hzz2<-data.frame(hzz2)
+
+
+N <- nrow(x2)
+C <- 1000 
+S <- 1000
+sumb2 <- rep(0,50)
+for (i in 1:C){   # a loop over the number of subsamples
+  set.seed(3*i)   # a different seed for each subsample  
+  subsample <- hzz2[sample(1:N, size=S, replace=TRUE), ]
+  mod2 <- lm(V1.1~V1:V50,data=subsample)
+  #sum b2 for all subsamples:
+  sumb2 <- sumb2 + coef(mod2)[[2]]
+}
+betahat<-sumb2/C
+
+#MSE
+mean((betahat-beta)^2)
+
+#Bias
+sum(betahat-beta)
+
+#Variance
+var(betahat)
+````
+
