@@ -1,0 +1,437 @@
+---
+keywords: Template, R Markdown, bookdown, Data Lab
+output: pdf_document
+abstract: |
+    People receive information, and communicate with others by on-line media more and more   these days. Thus the share of information deserves highly attention. In this paper, we employ statistical models and methods to analyze what effect the number of shares in Mashable (www.mashable.com). Also we build a model to predict online news popularity in social networks. First of all, we collect "Online News Popularity Data Set" from Kelwin Fernandes. This data set contains our target variable: Number of shares, and other 59 potential predictor variables. After using principal component analysis, we choose 11 variables out of 59 as our initial predictor variables. Next, we build generalized regression model(both Gaussian GLM with identity link and Poisson GLM with log link.) to fit 11 independent variables and our target variable, and choose Gaussian GLM with identity link due to minimum Information Criterion. Finanlly we adopt stepwise regression (use BIC, adjusted RSQUARE, and CP criteria together) to select 7 independent variables. In terms of model validation, we use hypothesis testing to choose a better model between simple model and complicated model. In order to check model prediction effect, we employ data splitting to check whether the model has good predictive accuracy or not. 
+
+   
+---
+
+# 1. Introduction {#sec:intro}
+
+Due to development of internet era and big data, the analysis and prediction of online news
+popularity are becoming trendy research topics. In this paper, we employ statistical models and methods to analyze what effect the number of shares in Mashable (www.mashable.com). Also we build a model to predict online news popularity in social networks.
+
+Firstly, we collect "Online News Popularity Data Set" from Kelwin Fernandes. This data set contains our target variable: Number of shares, and other 59 potential predictor variables. After using principal component analysis, we choose 11 variables out of 59 as our initial predictor variables. Next, we build generalized regression model(both Gaussian GLM with identity link and Poisson GLM with log link.) to fit 11 independent variables and our target variable, and choose Gaussian GLM with identity link due to minimum Information Criterion. Finanlly we adopt stepwise regression (use BIC, adjusted RSQUARE, and CP criteria together) to select 7 independent variables.
+
+In order to obtain accurate predictions, we check our regression assumptions. As for residual diagnostics, we construct residual diagnostic plots for preliminary inspection. Then we will check the following assumption violations: departure from normality, non-constancy of error variance, serial correlation in errors, outlying, leverage, and influential observations, as well as multicollinearity. If any assumption is violated, we will adopt relative remedies.
+
+The final step is model validation and prediction. We employ data splitting: use of a holdout sample to check the model and its predictive ability. 
+
+In Kelwin Fernandes' paper, they propose a novel and proactive Intelligent Decision Support System (IDSS) that analyzes articles prior to their publication. In this passage, we try to predict online news popularity in social networks by using our selected regression model, and provide some optimization advice for relative social networks.
+
+
+# 2. Description of Data
+Source:
+
+Paulo Cortez - ALGORITMI Research Centre, Universidade do Minho, Portugal 
+Pedro Sernadela - Universidade de Aveiro
+
+Data Set Information:
+
+* The articles were published by Mashable (www.mashable.com) and their content as the rights to reproduce it belongs to them. Hence, this dataset does not share the original content but some statistics associated with it. The original content be publicly accessed and retrieved using the provided urls. 
+* Acquisition date: January 8, 2015 
+* The estimated relative performance values were estimated by the authors using a Random Forest classifier and a rolling windows as assessment method. See their article for more details on how the relative performance values were set.
+
+The numerical descriptions of the variables in my data set is as below:
+```{r}
+project<-read.csv("C:/Users/Cleo2016/Desktop/5605/project proposal/OnlineNewsPopularity.csv")
+summary(project)
+```
+
+Attribute Information
+
+Number of Attributes: 61 (58 predictive attributes, 2 non-predictive, 1 goal field) 
+Attribute Information: 
+0. url: URL of the article (non-predictive) 
+
+1. timedelta: Days between the article publication and the dataset acquisition (non-predictive) 
+
+2. n_tokens_title: Number of words in the title 
+
+3. n_tokens_content: Number of words in the content 
+
+4. n_unique_tokens: Rate of unique words in the content 
+
+5. n_non_stop_words: Rate of non-stop words in the content 
+
+6. n_non_stop_unique_tokens: Rate of unique non-stop words in the content 
+
+7. num_hrefs: Number of links 
+
+8. num_self_hrefs: Number of links to other articles published by Mashable 
+
+9. num_imgs: Number of images 
+
+10. num_videos: Number of videos 
+
+11. average_token_length: Average length of the words in the content 
+
+12. num_keywords: Number of keywords in the metadata 
+
+13. data_channel_is_lifestyle: Is data channel 'Lifestyle'? 
+
+14. data_channel_is_entertainment: Is data channel 'Entertainment'? 
+
+15. data_channel_is_bus: Is data channel 'Business'? 
+
+16. data_channel_is_socmed: Is data channel 'Social Media'? 
+
+17. data_channel_is_tech: Is data channel 'Tech'? 
+
+18. data_channel_is_world: Is data channel 'World'? 
+
+19. kw_min_min: Worst keyword (min. shares) 
+
+20. kw_max_min: Worst keyword (max. shares) 
+
+21. kw_avg_min: Worst keyword (avg. shares) 
+
+22. kw_min_max: Best keyword (min. shares) 
+
+23. kw_max_max: Best keyword (max. shares) 
+
+24. kw_avg_max: Best keyword (avg. shares) 
+
+25. kw_min_avg: Avg. keyword (min. shares) 
+
+26. kw_max_avg: Avg. keyword (max. shares) 
+
+27. kw_avg_avg: Avg. keyword (avg. shares) 
+
+28. self_reference_min_shares: Min. shares of referenced articles in Mashable 
+
+29. self_reference_max_shares: Max. shares of referenced articles in Mashable 
+
+30. self_reference_avg_sharess: Avg. shares of referenced articles in Mashable 
+
+31. weekday_is_monday: Was the article published on a Monday? 
+
+32. weekday_is_tuesday: Was the article published on a Tuesday? 
+
+33. weekday_is_wednesday: Was the article published on a Wednesday? 
+
+34. weekday_is_thursday: Was the article published on a Thursday? 
+
+35. weekday_is_friday: Was the article published on a Friday? 
+
+36. weekday_is_saturday: Was the article published on a Saturday? 
+
+37. weekday_is_sunday: Was the article published on a Sunday? 
+
+38. is_weekend: Was the article published on the weekend? 
+
+39. LDA_00: Closeness to LDA topic 0 
+
+40. LDA_01: Closeness to LDA topic 1 
+
+41. LDA_02: Closeness to LDA topic 2 
+
+42. LDA_03: Closeness to LDA topic 3 
+
+43. LDA_04: Closeness to LDA topic 4 
+
+44. global_subjectivity: Text subjectivity 
+
+45. global_sentiment_polarity: Text sentiment polarity 
+
+46. global_rate_positive_words: Rate of positive words in the content 
+
+47. global_rate_negative_words: Rate of negative words in the content 
+
+48. rate_positive_words: Rate of positive words among non-neutral tokens 
+
+49. rate_negative_words: Rate of negative words among non-neutral tokens 
+
+50. avg_positive_polarity: Avg. polarity of positive words 
+
+51. min_positive_polarity: Min. polarity of positive words 
+
+52. max_positive_polarity: Max. polarity of positive words 
+
+53. avg_negative_polarity: Avg. polarity of negative words 
+
+54. min_negative_polarity: Min. polarity of negative words 
+
+55. max_negative_polarity: Max. polarity of negative words 
+
+56. title_subjectivity: Title subjectivity 
+
+57. title_sentiment_polarity: Title polarity 
+
+58. abs_title_subjectivity: Absolute subjectivity level 
+
+59. abs_title_sentiment_polarity: Absolute polarity level 
+
+60. shares: Number of shares (target)
+
+# 3. Figures {#sec:figure}
+```{r setup, ,echo = FALSE}
+project<-read.csv("C:/Users/Cleo2016/Desktop/5605/project proposal/OnlineNewsPopularity.csv")
+```
+
+
+PCA allows to describe a dataset, to summarize a dataset, to reduce the dimensionality. 
+```{r}
+library("FactoMineR")
+# Pricipal Components Analysis
+train = subset(project, select=-c(url, shares))
+names(train) <- c(1:59)
+# Pricipal Components Analysis
+fit <- princomp(train, cor=F)
+summary(fit) # print variance accounted for 
+plot(fit,type="lines");abline(0,1) # scree plot 
+```
+
+There are 5 eigenvalues greater than 1, and the components account for 99.403% of the total variation, with the first two accounting for about 92.6%. We can create a table of eigenvalues by creating the PCA object and then printing the table.
+
+```{r}
+result <- PCA(train)
+```
+
+In this case, we can see that the first principal component explains about 8.28% of the total variation, and the second principal component an additional 6.99%. So the first two principal components explain nearly 15.27% of the total variance. The proportions corresponding to those percentages are obtained by simply dividing a respective eigenvalue by $p$, the number of variables.
+
+The Individuals factor map is a plot of the Principal Component Scores for individuals on the first two principal components. Superimposed on the plot are mean scores on the components for qualitative (categorical) variables that are included in the PCA command.
+
+```{r}
+library("corrplot")
+cor.mat <- round(cor(train),2)
+corrplot(cor.mat, type="upper", order="hclust")
+```
+
+According to the PCA, we select 11 variables which include timedelta, num_hrefs, data_channel_is_lifestyle, kw_min_max, kw_avg_max, LDA_00, global_subjectivity, global_rate_positive_words, rate_positive_words, rate_negative_words, min_negative_polarity, rate_positive_words and num_hrefs.
+
+#4. Method and Models
+
+We will considering a Gaussian GLM with identity link and Poisson GLM with log link to fit the following model. After comparing the AIC of two model(in section 5. Analysis of data), the AIC of Gaussian GLM is smaller than the Poisson GLM. Thus, we choose Gaussian GLM with identity link as below:
+
+$y_i|\mu_i$~$P(\mu_i)$
+$\mu_i=\mathbf{x}'_i\mathbf{\beta}$
+
+The canonical link is the identity link.
+
+The Gaussian density function is given by 
+
+$f(y; \mathbf{\beta},\sigma^2)=\frac{1}{\sqrt{2\pi\sigma^2}}exp(-\frac{1}{2\sigma^2}(y-\mathbf{x}'_i\mathbf{\beta})^2)$
+
+###Gaussian GLM assumptions
+
+The data independently distributed.
+The dependent variable Yi does NOT need to be normally distributed, but it typically assumes a distribution from an exponential family(Gaussian).
+GLM does NOT assume a linear relationship between the dependent variable and the independent variables, but it does assume linear relationship between the transformed response in terms of the link function and the explanatory variables.
+Independent (explanatory) variables can be even the power terms or some other nonlinear transformations of the original independent variables.
+The homogeneity of variance does NOT need to be satisfied. In fact, it is not even possible in many cases given the model structure, and overdispersion (when the observed variance is larger than what the model assumes) maybe present.
+Errors need to be independent but NOT normally distributed.
+It uses maximum likelihood estimation (MLE) rather than ordinary least squares (OLS) to estimate the parameters, and thus relies on large-sample approximations.
+Goodness-of-fit measures rely on sufficiently large samples, where a heuristic rule is that not more than 20% of the expected cells counts are less than 5.
+
+
+### Maximum Likelihood Estimation for GLMs
+
+Then, we have the log-likelihood function with the canonical identity link:
+
+$l(\mathbf{\beta})=\sum_{i=1}^{n}{(\frac{y_i\mathbf{x}'_i\mathbf{\beta}-(\mathbf{x}'_i\mathbf{\beta})^2/2}{\sigma^2}}-\frac{y_i^2}{2\sigma^2}-\frac{1}{2}ln(2\pi\sigma^2))$.
+
+The (partial) derivatives of the canonical-link Gaussian log likelihood are given by
+
+$\frac{\partial l(\mathbf{\beta})}{\partial\beta_j}=\sum_{i=1}^{n}{\frac{1}{\sigma^2}(y_i-x_i\beta)x_{ij}}$
+
+$\frac{\partial l(\mathbf{\beta})}{\partial\sigma}=\sum_{i=1}^{n}{\frac{1}{\sigma}((\frac{y_i-x_i\beta}{\sigma})^2-1)}$
+
+$\frac{\partial^2 l(\mathbf{\beta})}{\partial\beta_j\partial\beta_k}=-\sum_{i=1}^{n}{\frac{1}{\sigma^2}x_{ji}x_{ki}}$
+
+$\frac{\partial^2 l(\mathbf{\beta})}{\partial\beta_j\partial\sigma}=-\sum_{i=1}^{n}{\frac{2}{\sigma^3}(y_i-x_{i}\beta) x_{ji}}$
+
+$\frac{\partial^2 l(\mathbf{\beta})}{\partial\sigma\partial\sigma}=-\sum_{i=1}^{n}{\frac{1}{\sigma^2}(3(\frac{y_i-x_{i}\beta}{\sigma})^2-1)}$
+
+
+###MlE using the Newton-Raphson (NR)/Fisher-Scoring (FS) method
+
+The n*n matrix $\mathbf{W}=Diag(\mathbf{x}'_i\mathbf{\beta})=Diag(\mu_i)$
+
+Thu, we have 
+
+$l^{'}(\beta)=X^{'}(\mathbf{Y}-\mathbf{\mu})=X^{'}W\mathbf{u}$,
+
+$l^{''}(\beta)=-X^{'}WX$,
+
+where $\mathbf{\mu}=(\mu_1,\mu_2,...,\mu_n)^{'}$, $\mu_i=exp(\mathbf{x}'_i\mathbf{\beta})$ and $\mathbf{u}=(u_1,u_2,...,u_n)$ with $u_i=(y_i-\mu_i)/\mu_i$ for i=1,2,...,n.
+
+The estimate of $\beta$ is:
+$\beta^{(t+1)}=\beta^{(t)}+(X^{'}W^{t}X)^{-1}X^{'}W^{(t)}u^{(t)}$.
+
+We repeat this process untill $\beta^{(t+1)}$ is sufficiently close to $\beta^{(t)}$
+
+$\mathbf{b}=\hat{\beta}$,
+
+$\hat{\mu_i}=\hat{\lambda_i}=exp(\mathbf{x}'_i\mathbf{b})$.
+
+#6. Analysis of Data 
+
+According to the PCA, we select 11 variables which include timedelta, num_hrefs, data_channel_is_lifestyle, kw_min_max, kw_avg_max, LDA_00, global_subjectivity, global_rate_positive_words, rate_positive_words, rate_negative_words, min_negative_polarity, rate_positive_words.
+
+For comparison we try to use both Gaussian GLM with identity link and Poisson GLM with log link.
+```{r}
+attach(project)
+project$data_channel_is_lifestyle<-factor(project$data_channel_is_lifestyle)
+project$data_channel_is_world<-factor(project$data_channel_is_world)
+
+ga <- glm(shares ~ timedelta+num_hrefs+data_channel_is_lifestyle+kw_min_max+kw_avg_max+LDA_00+global_subjectivity+rate_positive_words+rate_negative_words+min_negative_polarity+global_rate_positive_words+rate_positive_words+num_hrefs,data=project,family = gaussian(link="identity"))
+
+logit.p <- glm(shares ~ timedelta+num_hrefs+data_channel_is_lifestyle+kw_min_max+kw_avg_max+LDA_00+global_subjectivity+global_rate_positive_words+rate_positive_words+rate_negative_words+min_negative_polarity+global_rate_positive_words+rate_positive_words+num_hrefs,data=project,family = poisson(link="log"))
+
+summary(logit.p)
+summary(ga)
+
+anova(ga)
+```
+
+According to the output, we compare the AIC of two model. The AIC of Gaussian GLM is smaller than the Poisson GLM. Thus, we choose Gaussian GLM with identity link.
+
+Then, we use stepwise selection procedure. In this procedure, we need to specify a significance level for entry $\alpha=0.05$ and also a significance level for elimination $\alpha=0.05$.
+
+```{r}
+  stepwise <- function(full.model, initial.model, alpha.to.enter, alpha.to.leave) {
+      # full.model is the model containing all possible terms
+      # initial.model is the first model to consider
+      # alpha.to.enter is the significance level above which a variable may enter the model
+      # alpha.to.leave is the significance level below which a variable may be deleted from the model
+      # (Useful things for someone to add: specification of a data frame; a list of variables that must be included)
+      full <- lm(full.model);  # fit the full model
+      msef <- (summary(full)$sigma)^2;  # MSE of full model
+      n <- length(full$residuals);  # sample size
+      allvars <- attr(full$terms, "predvars");  # this gets a list of all predictor variables
+      current <- lm(initial.model);  # this is the current model
+      while (TRUE) {  # process each model until we break out of the loop
+        temp <- summary(current);  # summary output for the current model
+        rnames <- rownames(temp$coefficients);  # list of terms in the current model
+        print(temp$coefficients);  # write the model description
+        p <- dim(temp$coefficients)[1];  # current model's size
+        mse <- (temp$sigma)^2;  # MSE for current model
+        cp <- (n-p)*mse/msef - (n-2*p);  # Mallow's cp
+        fit <- sprintf("\nS = %f, R-sq = %f, R-sq(adj) = %f, C-p = %f",
+                       temp$sigma, temp$r.squared, temp$adj.r.squared, cp);
+        write(fit, file="");  # show the fit
+        write("=====", file="");  # print a separator
+        if (p > 1) {  # don't try to drop a term if only one is left
+          d <- drop1(current, test="F");  # looks for significance of terms based on F tests
+          pmax <- max(d[-1,6]);  # maximum p-value of any term (have to skip the intercept to avoid an NA value)
+          if (pmax > alpha.to.leave) {
+            # we have a candidate for deletion
+            var <- rownames(d)[d[,6] == pmax];  # name of variable to delete
+            if (length(var) > 1) {
+              # if an intercept is present, it will be the first name in the list
+              # there also could be ties for worst p-value
+              # taking the second entry if there is more than one is a safe solution to both issues
+              var <- var[2];
+            }
+            write(paste("--- Dropping", var, "\n"), file="");  # print out the variable to be dropped
+            f <- formula(current);  # current formula
+            f <- as.formula(paste(f[2], "~", paste(f[3], var, sep=" - ")));  # modify the formula to drop the chosen variable (by subtracting it)
+            current <- lm(f);  # fit the modified model
+            next;  # return to the top of the loop
+          }
+        }
+        # if we get here, we failed to drop a term; try adding one
+        # note: add1 throws an error if nothing can be added (current == full), which we trap with tryCatch
+        a <- tryCatch(add1(current, scope=full, test="F"), error=function(e) NULL);  # looks for significance of possible additions based on F tests
+        if (is.null(a)) {
+          break;  # there are no unused variables (or something went splat), so we bail out
+        }
+        pmin <- min(a[-1,6]);  # minimum p-value of any term (skipping the intercept again)
+        if (pmin < alpha.to.enter) {
+          # we have a candidate for addition to the model
+          var <- rownames(a)[a[,6] == pmin];  # name of variable to add
+          if (length(var) > 1) {
+            # same issue with ties, intercept as above
+            var <- var[2];
+          }
+          write(paste("+++ Adding", var, "\n"), file="");  # print the variable being added
+          f <- formula(current);  # current formula
+          f <- as.formula(paste(f[2], "~", paste(f[3], var, sep=" + ")));  # modify the formula to add the chosen variable
+          current <- lm(f);  # fit the modified model
+          next;  # return to the top of the loop
+        }
+        # if we get here, we failed to make any changes to the model; time to punt
+        break;
+      }
+  }
+
+mp2.1 <- glm(shares~1 ,data=project,gaussian(link = "identity"))
+stepwise(mp2.1,ga,alpha.to.enter=0.05, alpha.to.leave=0.05)
+```
+
+According to the ouput, we have to drop several variables which includes data_channel_is_lifestyle, LDA_00, global_rate_positive_words and min_negative_polarity. 
+
+Then, the final fitted model is 
+
+$\hat{\mu}$=(2.126129e+03)+2.347349e+00timedelta+4.522694e+01num_hrefs-4.315346e-03kw_min_max+5.846790e-03kw_avg_max+6.596533e+03global_subjectivity-4.773138e+03rate_positive_words-4.102078e+03rate_negative_words
+
+
+###Hypothesis Testing
+
+$H_0: M_0$ (simple model) is true  $H_1: M_1$ (more complicated model) is true
+
+The liklihood ratio test statistic, denoted by $G^2$
+
+$G^2=-2log(\frac{L(H_0)}{L(H_1)})$,  where $L(H_j)\equiv L_j$ denotes the maximized likelihood function under $H_j$ for j=0,1.
+
+```{r}
+mp2.2<-glm(formula = shares ~ timedelta + num_hrefs + 
+    kw_min_max + kw_avg_max + global_subjectivity + rate_positive_words + 
+    rate_negative_words, family = gaussian(link = "identity"), data = project)
+mp2.1 <- glm(shares~1 ,data=project,gaussian(link = "identity"))
+
+anova(mp2.1,mp2.2,test="Chisq")
+```
+
+$G^2=4.6837e+10$ P-value< 2.2e-16 which is significant at a level of 0.05 and the Gaussian GLM with identity link is a good fit for the data.
+
+
+###Model Validation
+
+We apply model validaiton by fitting the Gaussian GLM with identity link model on a "calibration data portion" and validating on a "test data portion", and prediction based on the "best" model.
+We split the dataset into two portions according to the "timedelta"- Days between the article publication and the dataset acquisition. We use timedelta from 731 to 162 as calibration data portion(total number:29945) to obtain our fitted model, and use timedelta from 161 to 8 (total numbers:9699) as test data portion to test the prediction effect of the fitted model. First, we obtain two Gaussian GLM with identity link models with two data portions.Then we compare the estimated regression coeffitients in these two models, and justify whether they are reasonablly closed or not. Next, we calculate the mean squared prediction error of model with test data portion. If the estimated regression coeffitients in these two models are closed, and mean square prediction error of model with test data portion is also closed to mean square error based on calibration dataset, the model has good prediction effect. The result is as below:
+
+```{r}
+#calibration data portion#
+profit<-read.csv("C:/Users/Cleo2016/Desktop/5605/project proposal/data1.csv")
+gafit <- glm(shares ~ timedelta+num_hrefs+kw_min_max+kw_avg_max+global_subjectivity+rate_positive_words+rate_negative_words+rate_positive_words,data=profit,family = gaussian(link="identity"))
+summary(gafit)
+#test data portion#
+propre<-read.csv("C:/Users/Cleo2016/Desktop/5605/project proposal/data2.csv")
+gapre <- glm(shares ~ timedelta+num_hrefs+kw_min_max+kw_avg_max+global_subjectivity+rate_positive_words+rate_negative_words+rate_positive_words+num_hrefs,data=propre,family = gaussian(link="identity"))
+summary(gapre)
+#mean squared prediction error in glm based on test data portion:#
+rmse <- function(error)
+{
+(mean(error^2))
+}
+pre<-predict.glm(gapre,newdata = propre,type = "response")
+error <- pre-propre$shares
+rmse(error)
+#mean squared prediction error in glm based on calibration data portion:#
+prefit<-predict.glm(gafit,newdata = profit,type = "response")
+err<-prefit-profit$shares
+rmse(err)
+#Plot of mean square predicted error based on test data portion#
+plot(error,main="mean square predicted error based on test data portion")
+
+```
+
+According to the results, the estimated regression coeffitients in these two models are closed, and all of them have same sign. Also, the mean squared prediction error of model with test data portion is also closed to mean square error based on calibration dataset. Thus, the model has good predictive accuracy.
+
+# Remarks
+
+According to our data analysis, Gaussian GLM is the best model to fit our dataset, and has good predictive accuracy in terms of shares.
+
+The Number of shares in Mashable(www.mashable.com) is associated with seven kinds of factors: Days between the article publication and the dataset acquisition, Number of links,Best keyword (min. shares), Best keyword (avg. shares), Text subjectivity, Rate of positive words among non-neutral tokens, Rate of negative words among non-neutral tokens. Thus the press need to focus on these seven aspects, and improve the relative works.
+
+# Reference {-}
+Hozo, Mak, Henna Shah, and Julio Sotelo. "Generalizing Random Forest Model for Online News Popularity Classification."
+
+Fernandes, K., P. Vinagre, and P. Cortez. "A Proactive Intelligent Decision Support System for Predicting the Popularity of Online News. InProgress in Artificial Intelligence (pp. 535-546)." (2015).
+
+Lichman, M. (2013). UCI Machine Learning Repository [http://archive.ics.uci.edu/ml]. Irvine, CA: University of California, School of Information and Computer Science.
+
+Ren, He, and Quan Yang. "Predicting and Evaluating the Popularity of Online News."
